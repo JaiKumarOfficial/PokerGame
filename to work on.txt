@@ -1,0 +1,7 @@
+held'em poker draw cases
+
+1.) straight flush tie breaker high card
+2.) 4ofKind tie breaker high card
+2.1) 4 of kind open in table and 5th card is higher than player cards
+3.) full house tie breaker high card of three of kind
+3.1) if three of kind on table then strength of pair
