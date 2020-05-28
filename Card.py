@@ -1,17 +1,5 @@
-"""This module contains a code example related to
-
-Think Python, 2nd Edition
-by Allen Downey
-http://thinkpython2.com
-
-Copyright 2015 Allen Downey
-
-License: http://creativecommons.org/licenses/by/4.0/
-"""
-
-from __future__ import print_function, division
-
 import requests
+
 
 class Deck:
     """Represents a deck of cards.
@@ -80,27 +68,36 @@ class Hand(Deck):
 
         self.hand = []
 
-    def player_hand(self, deck_obj, hand, display=False):
+    def player_hand(self, hand, display=False):
         """ Displays player's cards """
 
         self.hand = []
-        hand_url = deck_obj.base_url + deck_obj.deck_id + '/pile/' + hand + '/list/'
+        hand_url = self.base_url + self.deck_id + '/pile/' + hand + '/list/'
         res = requests.get(hand_url).json()
         t = res['piles'][hand]['cards']
         for card in range(len(t)):
             self.hand.append(t[card]['code'])
         if display:
             print(f'{hand} cards -> {self.hand}')
+        if hand == 'dealer':
+            self.dealer_hand = self.hand
         return self.hand
 
     def finalPlayerHand(self, deck_obj, hand):
-        """ adds player's hand with dealer's open 5 cards """
+        """ adds player's hand with dealer's open 5 cards
+            hand = player name
+        """
 
-        player_hand = self.player_hand(deck_obj, hand)
-        dealer_hand = self.player_hand(deck_obj, 'dealer')
+        player_hand = self.player_hand(hand=hand)
+        dealer_hand = self.player_hand(hand='dealer')
         final_player_hand = player_hand + dealer_hand
         return final_player_hand
 
-
-
-
+    def finalPlayerHandList(self, player_list):
+        player_dict = {}
+        for name in player_list:
+            player_hand = self.player_hand(hand=name)
+            dealer_hand = self.player_hand(hand='dealer')
+            final_player_hand = player_hand + dealer_hand
+            player_dict[name] = final_player_hand
+        return player_dict

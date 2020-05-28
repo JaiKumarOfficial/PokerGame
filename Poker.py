@@ -1,9 +1,12 @@
-import requests
 from Card import Deck, Hand
 
 
 
-class Ranks:
+class Ranks(Hand):
+
+    def __init__(self):
+        Deck.__init__(self)
+        Hand.__init__(self)
 
     def histogram(self, card_list):
         """ RETURNS sorted dict {suit: count(suit)}"""
@@ -17,9 +20,9 @@ class Ranks:
         sorted_hist = sorted(hist.items(), key=lambda kv: (kv[1], kv[0]), reverse=True)
         return dict(sorted_hist)
 
-    def isRoyalFlush(self, Hand_obj, deck_obj, hand):
+    def isRoyalFlush(self, fplyrCard):
 
-        final_player_hand = Hand.finalPlayerHand(Hand_obj, deck_obj, hand)
+        final_player_hand = fplyrCard
         hist = self.histogram(final_player_hand)
         for count in hist.values():
             if count >= 5:
@@ -29,16 +32,16 @@ class Ranks:
                     return True
         return False
 
-    def isStraightFlush(self, Hand_obj, deck_obj, hand):
+    def isStraightFlush(self, fplyrCard):
 
-        flush = self.isFlush(Hand_obj, deck_obj, hand)
+        flush = self.isFlush(fplyrCard)
         if flush:
-            final_player_hand = Hand.finalPlayerHand(Hand_obj, deck_obj, hand)
+            final_player_hand = fplyrCard
             hist = self.histogram(final_player_hand)
             for count in hist.values():
                 if count >= 5:
                     key = list(hist.keys())[0]
-            straight = self.isStraight(Hand_obj, deck_obj, hand, suits=[key])
+            straight = self.isStraight(fplyrCard, suits=[key])
             if straight:
                 return True
             else:
@@ -46,20 +49,20 @@ class Ranks:
         else:
             return False
 
-    def isFlush(self, Hand_obj, deck_obj, hand):
+    def isFlush(self, fplyrCard):
 
-        final_player_hand = Hand.finalPlayerHand(Hand_obj, deck_obj, hand)
+        final_player_hand = fplyrCard
         hist = self.histogram(final_player_hand)
         for count in hist.values():
             if count >= 5:
                 return True
         return False
 
-    def isStraight(self, Hand_obj, deck_obj, hand, suits=None):
+    def isStraight(self, fplyrCard, suits=None):
 
         suits = suits
         num   = ['A','2','3','4','5','6','7','8','9','0','J','Q','K','A']
-        final_player_hand = Hand.finalPlayerHand(Hand_obj, deck_obj, hand)
+        final_player_hand = fplyrCard
         if suits != None:
             for s in suits:
                 count = 0
@@ -83,18 +86,18 @@ class Ranks:
                     count = 0
         return False
 
-    def isFourOfKind(self, Hand_obj, deck_obj, hand):
+    def isFourOfKind(self, fplyrCard):
 
-        final_player_hand = Hand.finalPlayerHand(Hand_obj, deck_obj, hand)
+        final_player_hand = fplyrCard
         num = [i[0] for i in final_player_hand]
         for i in num:
             if num.count(i) >= 4:
                 return True
         return False
 
-    def isFullHouse(self, Hand_obj, deck_obj, hand):
+    def isFullHouse(self, fplyrCard):
 
-        final_player_hand = Hand.finalPlayerHand(Hand_obj, deck_obj, hand)
+        final_player_hand = fplyrCard
         num = [i[0] for i in final_player_hand]
         for i in num:
             if num.count(i) >= 3:
@@ -104,18 +107,18 @@ class Ranks:
                         return True
         return False
 
-    def isThreeOfKind(self, Hand_obj, deck_obj, hand):
+    def isThreeOfKind(self, fplyrCard):
 
-        final_player_hand = Hand.finalPlayerHand(Hand_obj, deck_obj, hand)
+        final_player_hand = fplyrCard
         num = [i[0] for i in final_player_hand]
         for i in num:
             if num.count(i) >= 3:
                 return True
         return False
 
-    def isTwoOfKind(self, Hand_obj, deck_obj, hand):
+    def isTwoOfKind(self, fplyrCard):
 
-        final_player_hand = Hand.finalPlayerHand(Hand_obj, deck_obj, hand)
+        final_player_hand = fplyrCard
         num = [i[0] for i in final_player_hand]
         for i in num:
             if num.count(i) >= 2:
@@ -125,38 +128,38 @@ class Ranks:
                         return True
         return False
 
-    def isPair(self, Hand_obj, deck_obj, hand):
+    def isPair(self, fplyrCard):
 
-        final_player_hand = Hand.finalPlayerHand(Hand_obj, deck_obj, hand)
+        final_player_hand = fplyrCard
         num = [i[0] for i in final_player_hand]
         for i in num:
             if num.count(i) >= 2:
                 return True
         return False
 
-    def highCard(self, Hand_obj, deck_obj, hand):
+    def highCard(self, fplyrCard):
 
-        final_player_hand = Hand.finalPlayerHand(Hand_obj, deck_obj, hand)
+        final_player_hand = fplyrCard
         sort_order = ['A','K','Q','J','0','9','8','7','6','5','4','3','2']
         res = [i for x in sort_order for i in final_player_hand if i[0] == x]
         return res[0]
 
-    def compare(self, player_names, hand, deck):
+    def compare(self, player_names, player_dict):
 
         game = {}
         for name in player_names:
             rank_res = {}
-
-            rank_res.update(RoyalFlush = poker.isRoyalFlush(hand, deck, name))
-            rank_res.update(StraightFlush = poker.isStraightFlush(hand, deck, name))
-            rank_res.update(FourOfKind = poker.isFourOfKind(hand, deck, name))
-            rank_res.update(FullHouse= poker.isFullHouse(hand, deck, name))
-            rank_res.update(Flush = poker.isFlush(hand, deck, name))
-            rank_res.update(Straight = poker.isStraight(hand, deck, name))
-            rank_res.update(ThreeOfKind= poker.isThreeOfKind(hand, deck, name))
-            rank_res.update(TwoOfKind = poker.isTwoOfKind(hand, deck, name))
-            rank_res.update(Pair = poker.isPair(hand, deck, name))
-            rank_res.update(highCard = poker.highCard(hand, deck, name))
+            fplyrCards = player_dict[name]
+            rank_res.update(RoyalFlush = poker.isRoyalFlush(fplyrCards))
+            rank_res.update(StraightFlush = poker.isStraightFlush(fplyrCards))
+            rank_res.update(FourOfKind = poker.isFourOfKind(fplyrCards))
+            rank_res.update(FullHouse= poker.isFullHouse(fplyrCards))
+            rank_res.update(Flush = poker.isFlush(fplyrCards))
+            rank_res.update(Straight = poker.isStraight(fplyrCards))
+            rank_res.update(ThreeOfKind= poker.isThreeOfKind(fplyrCards))
+            rank_res.update(TwoOfKind = poker.isTwoOfKind(fplyrCards))
+            rank_res.update(Pair = poker.isPair(fplyrCards))
+            rank_res.update(highCard = poker.highCard(fplyrCards))
             game[name] = rank_res
         lst = []
         for name in player_names:
@@ -232,17 +235,16 @@ class Ranks:
 
 
 if __name__ == '__main__':
-    deck = Deck()
-    hand = Hand()
+
     poker = Ranks()
 
     n = int(input("how many players want to play: "))
     player_names = poker.playerNames(n)
-    deck.distribute_cards(2, player_names)                              # deal cards to players
+    poker.distribute_cards(2, player_names)                             # deal cards to players
     for name in player_names:
-        hand.player_hand(deck, name, display=True)                      # display player's cards
-    # hand.player_hand(deck, 'sabby', display=True)
-    deck.move_cards('dealer', 5)                                        # deal dealer's cards
-    hand.player_hand(deck, 'dealer', display=True)                      # display dealer's cards
-    winner = poker.compare(player_names, hand, deck)                    # compares ranks of players
+        poker.player_hand(hand=name, display=True)                      # display player's cards
+    poker.move_cards('dealer', 5)                                       # deal dealer's cards
+    poker.player_hand(hand='dealer', display=True)                      # display dealer's cards
+    finalPlayerHand_dict = poker.finalPlayerHandList(player_names)
+    winner = poker.compare(player_names, finalPlayerHand_dict)          # compares ranks of players
     print(winner)
