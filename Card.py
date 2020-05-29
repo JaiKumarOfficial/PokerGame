@@ -94,6 +94,10 @@ class Hand(Deck):
         return final_player_hand
 
     def finalPlayerHandList(self, player_list):
+        """ adds player's hand with dealer's open 5 cards
+            param = player name list
+            return = players name dictionary
+        """
         player_dict = {}
         for name in player_list:
             player_hand = self.player_hand(hand=name)
@@ -101,3 +105,19 @@ class Hand(Deck):
             final_player_hand = player_hand + dealer_hand
             player_dict[name] = final_player_hand
         return player_dict
+
+    def highCardAllPlayers(self, player_list):
+        '''
+        :param player_list:
+        :return: dict ('playerName': highCard)
+        '''
+        highCards = {}
+        for name in player_list:
+            p_Cards = self.player_hand(name)
+            highCards[name] = self.highCard(p_Cards)
+        return highCards
+
+    def dealerHighCard(self):
+        d_cards = self.player_hand('dealer')
+        dealer_high_c = self.highCard(d_cards)
+        return dealer_high_c

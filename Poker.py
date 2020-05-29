@@ -7,6 +7,7 @@ class Ranks(Hand):
     def __init__(self):
         Deck.__init__(self)
         Hand.__init__(self)
+        self.playerTop5Cards = {}
 
     def histogram(self, card_list):
         """ RETURNS sorted dict {suit: count(suit)}"""
@@ -141,9 +142,19 @@ class Ranks(Hand):
 
         final_player_hand = fplyrCard
         sort_order = ['A','K','Q','J','0','9','8','7','6','5','4','3','2']
+        suit_rank = ['S','H','D','C']
         res = [i for x in sort_order for i in final_player_hand if i[0] == x]
-        return res[0]
-
+        count = 1
+        t = [res[0][0]]
+        for i in res[1:]:
+            if i[0] in t:
+                count += 1
+        if count > 1:
+            conflict = res[:count]
+            s_conflict = [i for x in suit_rank for i in conflict if i[1] == x]
+            return s_conflict[0]
+        else:
+            return res[0]
     def compare(self, player_names, player_dict):
 
         game = {}
@@ -192,11 +203,11 @@ class Ranks(Hand):
             isDraw, res = self.draw(highCard_list)
             return f"{res[0]} won with {res[1]} high card"
 
-    def draw(self, list):
+    def draw(self, listOfTuple):                            # list = list of tuple(name, highcard)
         isDraw = False
         num_rank= ['A','K','Q','J','0','9','8','7','6','5','4','3','2']
         suit_rank = ['S','H','D','C']
-        sortNumRank = [i for x in num_rank for i in list if i[1][0] == x]
+        sortNumRank = [i for x in num_rank for i in listOfTuple if i[1][0] == x]
         count = 1
         t = [sortNumRank[0][1][0]]
         for i,j in sortNumRank[1:]:
@@ -206,7 +217,19 @@ class Ranks(Hand):
             isDraw = True
             conflict = sortNumRank[:count]
             s_conflict = [i for x in suit_rank for i in conflict if i[1][1] == x]
-            return isDraw, s_conflict[0]
+            temp = [s_conflict[0][1]]
+            flag = 0
+            for i, j in s_conflict[1:]:
+                if j in temp:
+                    flag += 1
+            if flag == 0:
+                return isDraw, s_conflict[0]
+            else:
+                print('high card draw checking second high card')
+                names = [name[0] for name in s_conflict]
+                res = self.highCardAllPlayers(names)
+                noUse, winner = self.draw(list(res.items()))
+                return winner
         else:
             return isDraw, sortNumRank[0]
 
@@ -223,9 +246,19 @@ class Ranks(Hand):
                 count += 1
         if count >= 2:
             isDraw = True
+            tieList = sort_lst[:count]
+            # call method tie breaker
             return isDraw, sort_lst[:count]
         else:
             return isDraw, sort_lst[0]
+
+    def tirBreaker(self, sort_list):
+        '''
+        fires when rank draw comes up and implements tie breaker acc to rank
+        :param sort_list: [(key, name, indexOfKey)] only of players with tie
+        :return:
+        '''
+        pass
 
     def playerNames(self, n):
         player_list = []
