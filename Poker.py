@@ -8,6 +8,8 @@ class Ranks(Hand):
         Deck.__init__(self)
         Hand.__init__(self)
         self.playerTop5Cards = {}
+        self.game = {}
+        self.sortOrder = ['A', 'K', 'Q', 'J', '0', '9', '8', '7', '6', '5', '4', '3', '2']
 
     def histogram(self, card_list):
         """ RETURNS sorted dict {suit: count(suit)}"""
@@ -21,7 +23,7 @@ class Ranks(Hand):
         sorted_hist = sorted(hist.items(), key=lambda kv: (kv[1], kv[0]), reverse=True)
         return dict(sorted_hist)
 
-    def isRoyalFlush(self, fplyrCard):
+    def isRoyalFlush(self, fplyrCard, collect=False):
 
         final_player_hand = fplyrCard
         hist = self.histogram(final_player_hand)
@@ -30,10 +32,13 @@ class Ranks(Hand):
                 key = list(hist.keys())[0]
                 royal_flush = ['A'+ key, 'K'+ key, 'Q'+ key,'J'+ key, '0'+ key]
                 if set(royal_flush).issubset(set(final_player_hand)):
-                    return True
+                    if collect:
+                        return royal_flush
+                    else:
+                        return True
         return False
 
-    def isStraightFlush(self, fplyrCard):
+    def isStraightFlush(self, fplyrCard, collect=False):
 
         flush = self.isFlush(fplyrCard)
         if flush:
@@ -41,12 +46,13 @@ class Ranks(Hand):
             hist = self.histogram(final_player_hand)
             for count in hist.values():
                 if count >= 5:
-                    key = list(hist.keys())[0]
-            straight = self.isStraight(fplyrCard, suits=[key])
-            if straight:
-                return True
+                    suit = list(hist.keys())[0]
+            if collect:
+                cards = self.isStraight(fplyrCard, suits=[suit], collect=True)
+                return cards
             else:
-                return False
+                straight = self.isStraight(fplyrCard, suits=[suit])
+                return straight
         else:
             return False
 
@@ -56,35 +62,49 @@ class Ranks(Hand):
         hist = self.histogram(final_player_hand)
         for count in hist.values():
             if count >= 5:
-                return True
+                key = list(hist.keys())[0]
+                return True, key
         return False
 
-    def isStraight(self, fplyrCard, suits=None):
+    def isStraight(self, fplyrCard, suits=None, collect=False):
 
         suits = suits
-        num   = ['A','2','3','4','5','6','7','8','9','0','J','Q','K','A']
+        num   = ['A','K','Q','J','0','9','8','7','6','5','4','3','2','A']
         final_player_hand = fplyrCard
         if suits != None:
             for s in suits:
                 count = 0
+                temp = []
                 for i in num:
                     card = i+s
                     if card in final_player_hand:
                         count += 1
+                        if collect:
+                            temp.append(card)
+                            if count == 5:
+                                return temp
                         if count == 5:
                             return True
                     else:
                         count = 0
+                        temp = []
+
         else:
             only_num = [num[0] for num in final_player_hand]
             count = 0
+            temp = []
             for i in num:
                 if i in only_num:
                     count += 1
+                    if collect:
+                        temp.append(i)
+                        if count == 5:
+                            return temp
                     if count == 5:
                         return True
                 else:
                     count = 0
+                    temp = []
         return False
 
     def isFourOfKind(self, fplyrCard):
@@ -129,14 +149,28 @@ class Ranks(Hand):
                         return True
         return False
 
-    def isPair(self, fplyrCard):
+    def isPair(self, fplyrCard, collect=False):
 
         final_player_hand = fplyrCard
-        num = [i[0] for i in final_player_hand]
-        for i in num:
-            if num.count(i) >= 2:
-                return True
-        return False
+        num = [i[0] for x in self.sortOrder for i in final_player_hand if i[0] == x]
+        if collect:
+            pair = []
+            for i in num:
+                if num.count(i) > 1:
+                    pair.append(i)
+                    if len(pair) == 2:
+                        break
+            for i in num:
+                if i not in pair:
+                    pair.append(i)
+                    if len(pair) == 5:
+                        break
+            return pair
+        else:
+            for i in num:
+                if num.count(i) >= 2:
+                    return True
+            return False
 
     def highCard(self, fplyrCard):
 
@@ -157,7 +191,7 @@ class Ranks(Hand):
             return res[0]
     def compare(self, player_names, player_dict):
 
-        game = {}
+        #game = {}
         for name in player_names:
             rank_res = {}
             fplyrCards = player_dict[name]
@@ -171,12 +205,12 @@ class Ranks(Hand):
             rank_res.update(TwoOfKind = poker.isTwoOfKind(fplyrCards))
             rank_res.update(Pair = poker.isPair(fplyrCards))
             rank_res.update(highCard = poker.highCard(fplyrCards))
-            game[name] = rank_res
+            self.game[name] = rank_res
         lst = []
         for name in player_names:
             index = 1
-            for key, val in game[name].items():
-                if val:
+            for key, val in self.game[name].items():
+                if val == True:
                     lst.append((key, name, index))
                     break
                 else:
@@ -198,8 +232,8 @@ class Ranks(Hand):
             # check winner acc to high card
             highCard_list = []
             for name in player_names:
-                print(game[name].get('highCard'), -1)
-                highCard_list.append((name, game[name]['highcard']))
+                print(self.game[name].get('highCard'), -1)
+                highCard_list.append((name, self.game[name]['highcard']))
             isDraw, res = self.draw(highCard_list)
             return f"{res[0]} won with {res[1]} high card"
 
@@ -245,33 +279,182 @@ class Ranks(Hand):
             if i == sort_lst[0][2]:
                 count += 1
         if count >= 2:
-            isDraw = True
             tieList = sort_lst[:count]
-            # call method tie breaker
-            return isDraw, sort_lst[:count]
+            isDraw, tieWinner = self.tieBreaker(tieList)
+            return isDraw, tieWinner
         else:
             return isDraw, sort_lst[0]
 
-    def tirBreaker(self, sort_list):
+    def tieBreaker(self, sort_list):
         '''
         fires when rank draw comes up and implements tie breaker acc to rank
         :param sort_list: [(key, name, indexOfKey)] only of players with tie
-        :return:
+        :return: isDraw, list of draw OR winner(key, name, indexOfKey)
         '''
-        pass
+        print('in tie breaker')
+        playernames = [name for k, name, i in sort_list]
+        player_dict = self.finalPlayerHandList(playernames)
+        self.collectCards(sort_list, player_dict)
+
+        if sort_list[0][0] == 'RoyalFlush':
+            isDraw = False
+            cards = list(self.playerTop5Cards.values())
+            count = 0
+            dealer = player_dict['dealer']
+            for i in cards:
+                if i in dealer:
+                    count += 1
+                else:
+                    count = 0
+            if count == len(sort_list):
+                isDraw = True
+                return isDraw, sort_list
+            else:
+                """ only runs when total cards or more than 7 """
+                t = list(self.playerTop5Cards.items())
+                suits = ['S', 'H', 'D', 'C']
+                sort_t = [(name,card) for x in suits for name,card in t if card[0][1] == x]
+                winner_name = sort_t[0][0]
+                for tup in sort_list:
+                    if tup[1] == winner_name:
+                        return isDraw, tup
+
+        elif sort_list[0][0] == 'StraightFlush':
+            temp = list(self.playerTop5Cards.items())
+            #sort_order = ['A', 'K', 'Q', 'J', '0', '9', '8', '7', '6', '5', '4', '3', '2']
+            res = [(name,cards) for x in self.sortOrder for name,cards in temp if cards[-1][0] == x]
+            winner_name = res[0][0]
+            for tup in sort_list:
+                if tup[1] == winner_name:
+                    return False, tup
+
+        elif sort_list[0][0] == 'FourOfKind':
+            pass
+
+        elif sort_list[0][0] == 'FullHouse':
+            pass
+
+        elif sort_list[0][0] == 'Flush':
+            pass
+
+        elif sort_list[0][0] == 'Straight':
+
+            temp = list(self.playerTop5Cards.items())
+            #sort_order = ['A', 'K', 'Q', 'J', '0', '9', '8', '7', '6', '5', '4', '3', '2']
+            res = [(name, cards) for x in self.sortOrder for name, cards in temp if cards[1] == x]
+            isDraw, win = self.isDuplicate(res, res[0][1])
+            if isDraw:
+                return True, win
+            else:
+                winner_name = res[0][0]
+                for tup in sort_list:
+                    if tup[1] == winner_name:
+                        return False, tup
+
+        elif sort_list[0][0] == 'ThreeOfKind':
+            pass
+
+        elif sort_list[0][0] == 'TwoOfKind':
+            pass
+
+        elif sort_list[0][0] == 'Pair':
+
+            temp = list(self.playerTop5Cards.items())
+            #sort_order = ['A', 'K', 'Q', 'J', '0', '9', '8', '7', '6', '5', '4', '3', '2']
+            res = [(name, cards) for x in self.sortOrder for name, cards in temp if cards[0] == x]
+            target = res[0][1][0]
+            bool, l = self.isDuplicate(res, target, index=0)
+            n = 2
+            while True:
+                if n == 5:
+                    print('draw')
+                    return True, l
+                elif bool:
+                    bool, l = self.pairTieBreaker(l, n)
+                    n += 1
+                else:
+                    winner_name = l[0][0]
+                    for tup in sort_list:
+                        if tup[1] == winner_name:
+                            return False, tup
+
+    def pairTieBreaker(self, l, n):
+
+        temp = list(self.playerTop5Cards.items())
+        res = [(name, cards) for x in self.sortOrder for name, cards in temp if cards[n] == x]
+        bool, ans = self.isDuplicate(res, res[0][1][n], index=n)
+        return bool, ans
+
+    def isDuplicate(self, ls, target, index=None):
+        count = 0
+        for name, cards in ls[1:]:
+            if index != None:
+                if len(set(target).difference(set(cards[index]))) == 0:
+                    count += 1
+            else:
+                if len(set(target).difference(set(cards))) == 0:
+                    count += 1
+        if count >= 1:
+            return True, ls[:count+1]
+        else:
+            return False, ls
+
+
+    def collectCards(self, sort_list, player_dict):
+        '''
+        :param: sort_list, player_dict: [(key, name, indexOfKey)], {name: [7 cards], ...} only of players with tie
+        :return: top5: {name: [best 5 cards of player], ...}
+        '''
+        for key, name, i in sort_list:
+            fplyrCard = player_dict[name]
+            if key == 'RoyalFlush':
+                self.playerTop5Cards[name] = self.isRoyalFlush(fplyrCard, collect=True)
+
+            elif key == 'StraightFlush':
+                self.playerTop5Cards[name] = self.isStraightFlush(fplyrCard, collect=True)
+
+            elif key == 'FourOfKind':
+                pass
+
+            elif key == 'FullHouse':
+                pass
+
+            elif key == 'Flush':
+                pass
+
+            elif key == 'Straight':
+                self.playerTop5Cards[name] = self.isStraight(fplyrCard, collect=True)
+
+            elif key == 'Pair':
+                self.playerTop5Cards[name] = self.isPair(fplyrCard, collect=True)
+
+            else:
+                print('not yet collected')
 
     def playerNames(self, n):
         player_list = []
         for i in range(n):
-            player_list.append(input("enter player name: "))
+            name = input("enter player name: ")
+            while True:
+                if name in player_list:
+                    print("name already taken")
+                    name = input("enter player name: ")
+                else:
+                    player_list.append(name)
+                    break
         return player_list
 
 
 if __name__ == '__main__':
 
     poker = Ranks()
-
-    n = int(input("how many players want to play: "))
+    while True:
+        n = int(input("how many players want to play: "))
+        if n > 23:
+            print("we only have 52 cards please reduce no. of players playing")
+            print()
+        else:
+            break
     player_names = poker.playerNames(n)
     poker.distribute_cards(2, player_names)                             # deal cards to players
     for name in player_names:
