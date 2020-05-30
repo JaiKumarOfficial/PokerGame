@@ -99,11 +99,12 @@ class Hand(Deck):
             return = players name dictionary
         """
         player_dict = {}
+        dealer_hand = self.player_hand(hand='dealer')
         for name in player_list:
             player_hand = self.player_hand(hand=name)
-            dealer_hand = self.player_hand(hand='dealer')
             final_player_hand = player_hand + dealer_hand
             player_dict[name] = final_player_hand
+        player_dict['dealer'] = dealer_hand
         return player_dict
 
     def highCardAllPlayers(self, player_list):
