@@ -10,6 +10,7 @@ class Ranks(Hand):
         self.playerTop5Cards = {}
         self.game = {}
         self.sortOrder = ['A', 'K', 'Q', 'J', '0', '9', '8', '7', '6', '5', '4', '3', '2']
+        self.suits = ['S', 'H', 'D', 'C']
 
     def histogram(self, card_list):
         """ RETURNS sorted dict {suit: count(suit)}"""
@@ -56,15 +57,30 @@ class Ranks(Hand):
         else:
             return False
 
-    def isFlush(self, fplyrCard):
+    def isFlush(self, fplyrCard, collect=False):
 
         final_player_hand = fplyrCard
-        hist = self.histogram(final_player_hand)
-        for count in hist.values():
-            if count >= 5:
-                key = list(hist.keys())[0]
-                return True, key
-        return False
+        if collect:
+            suitTemp = [i[1] for i in final_player_hand]
+            for suit in self.suits:
+                if suitTemp.count(suit) >= 5:
+                    key = suit
+                    break
+            sortHand = [i for x in self.sortOrder for i in final_player_hand if i[0] == x]
+            flush = []
+            for card in sortHand:
+                if card[1] == key:
+                    if len(flush) == 5:
+                        return flush
+                    else:
+                        flush.append(card[0])
+        else:
+            hist = self.histogram(final_player_hand)
+            for count in hist.values():
+                if count >= 5:
+                    key = list(hist.keys())[0]
+                    return True, key
+            return False
 
     def isStraight(self, fplyrCard, suits=None, collect=False):
 
@@ -107,16 +123,30 @@ class Ranks(Hand):
                     temp = []
         return False
 
-    def isFourOfKind(self, fplyrCard):
+    def isFourOfKind(self, fplyrCard, collect=False):
 
         final_player_hand = fplyrCard
-        num = [i[0] for i in final_player_hand]
-        for i in num:
-            if num.count(i) >= 4:
-                return True
+        num = [i[0] for x in self.sortOrder for i in final_player_hand if i[0] == x]
+        if collect:
+            cards = []
+            for card in num:
+                if num.count(card) == 4:
+                    cards.append(card)
+                    if len(cards) == 4:
+                        break
+            for card in num:
+                if card not in cards:
+                    cards.append(card)
+                    if len(cards) == 5:
+                        break
+            return cards
+        else:
+            for i in num:
+                if num.count(i) >= 4:
+                    return True
         return False
 
-    def isFullHouse(self, fplyrCard):
+    def isFullHouse(self, fplyrCard, collect=False):
 
         final_player_hand = fplyrCard
         num = [i[0] for i in final_player_hand]
@@ -137,17 +167,28 @@ class Ranks(Hand):
                 return True
         return False
 
-    def isTwoOfKind(self, fplyrCard):
+    def isTwoOfKind(self, fplyrCard, collect=False):  # two pair
 
         final_player_hand = fplyrCard
         num = [i[0] for i in final_player_hand]
-        for i in num:
-            if num.count(i) >= 2:
-                temp = [j for j in num if j != i]
-                for elem in temp:
-                    if temp.count(elem) >= 2:
-                        return True
-        return False
+        if collect:
+            sortedCards = [i for x in self.sortOrder for i in num if i == x]
+            twoPair = []
+            for i in sortedCards:
+                if sortedCards.count(i) >= 2 and len(twoPair) < 4:
+                    twoPair.append(i)
+            for i in sortedCards:
+                if i not in twoPair and len(twoPair) < 5:
+                    twoPair.append(i)
+            return twoPair
+        else:
+            for i in num:
+                if num.count(i) >= 2:
+                    temp = [j for j in num if j != i]
+                    for elem in temp:
+                        if temp.count(elem) >= 2:
+                            return True
+            return False
 
     def isPair(self, fplyrCard, collect=False):
 
@@ -202,7 +243,7 @@ class Ranks(Hand):
             rank_res.update(Flush = poker.isFlush(fplyrCards))
             rank_res.update(Straight = poker.isStraight(fplyrCards))
             rank_res.update(ThreeOfKind= poker.isThreeOfKind(fplyrCards))
-            rank_res.update(TwoOfKind = poker.isTwoOfKind(fplyrCards))
+            rank_res.update(TwoPair = poker.isTwoOfKind(fplyrCards))  # two pair
             rank_res.update(Pair = poker.isPair(fplyrCards))
             rank_res.update(highCard = poker.highCard(fplyrCards))
             self.game[name] = rank_res
@@ -321,7 +362,6 @@ class Ranks(Hand):
 
         elif sort_list[0][0] == 'StraightFlush':
             temp = list(self.playerTop5Cards.items())
-            #sort_order = ['A', 'K', 'Q', 'J', '0', '9', '8', '7', '6', '5', '4', '3', '2']
             res = [(name,cards) for x in self.sortOrder for name,cards in temp if cards[-1][0] == x]
             winner_name = res[0][0]
             for tup in sort_list:
@@ -329,22 +369,59 @@ class Ranks(Hand):
                     return False, tup
 
         elif sort_list[0][0] == 'FourOfKind':
-            pass
+            temp = list(self.playerTop5Cards.items())
+            res = [(name, cards) for x in self.sortOrder for name, cards in temp if cards[1] == x]
+            isDraw, win = self.isDuplicate(res, res[0][1], index=0)
+            if isDraw:
+                isDraw, win = self.isDuplicate(win, win[0][1], index=-1)
+                if isDraw:
+                    drawlist = [tup for x in win for tup in sort_list if tup[1] == x[0]]
+                    return True, drawlist
+                else:
+                    sort = [(name, cards) for x in self.sortOrder for name, cards in win if cards[-1] == x]
+                    return False, sort[0]
+            else:
+                winner_name = win[0][0]
+                for tup in sort_list:
+                    if tup[1] == winner_name:
+                        return False, tup
 
         elif sort_list[0][0] == 'FullHouse':
             pass
 
         elif sort_list[0][0] == 'Flush':
-            pass
+            temp = list(self.playerTop5Cards.items())
+            res = [(name, cards) for x in self.sortOrder for name, cards in temp if cards[0] == x]
+            isDraw, win = self.isDuplicate(res, res[0][1][0], index=0)
+            if isDraw:
+                n = 1
+                while True:
+                    if n == 5 and isDraw:
+                        print('draw')
+                        drawlist = [tup for x in win for tup in sort_list if tup[1] == x[0]]
+                        return True, drawlist
+                    elif isDraw:
+                        isDraw, win = self.isDuplicate(win, win[0][1][n], index=n)
+                        n += 1
+                    else:
+                        winner_name = win[0][0]
+                        for tup in sort_list:
+                            if tup[1] == winner_name:
+                                return False, tup
+            else:
+                winner_name = win[0][0]
+                for tup in sort_list:
+                    if tup[1] == winner_name:
+                        return False, tup
+
 
         elif sort_list[0][0] == 'Straight':
-
             temp = list(self.playerTop5Cards.items())
-            #sort_order = ['A', 'K', 'Q', 'J', '0', '9', '8', '7', '6', '5', '4', '3', '2']
             res = [(name, cards) for x in self.sortOrder for name, cards in temp if cards[1] == x]
             isDraw, win = self.isDuplicate(res, res[0][1])
             if isDraw:
-                return True, win
+                drawlist = [tup for x in win for tup in sort_list if tup[1] == x[0]]
+                return True, drawlist
             else:
                 winner_name = res[0][0]
                 for tup in sort_list:
@@ -354,34 +431,60 @@ class Ranks(Hand):
         elif sort_list[0][0] == 'ThreeOfKind':
             pass
 
-        elif sort_list[0][0] == 'TwoOfKind':
-            pass
+        elif sort_list[0][0] == 'TwoPair':  # two pair
+            temp = list(self.playerTop5Cards.items())
+            res = [(name, cards) for x in self.sortOrder for name, cards in temp if cards[0] == x]
+            isDraw, win = self.isDuplicate(res, res[0][1][0], index=0)
+            if isDraw:
+                n = 2
+                while True:
+                    if n > 5 and isDraw:
+                        print('draw')
+                        drawlist = [tup for x in win for tup in sort_list if tup[1] == x[0]]
+                        return True, drawlist
+                    elif isDraw:
+                        isDraw, win = self.pairTieBreaker(win, n)
+                        n += 2
+                    else:
+                        winner_name = win[0][0]
+                        for tup in sort_list:
+                            if tup[1] == winner_name:
+                                return False, tup
+            else:
+                winner_name = win[0][0]
+                for tup in sort_list:
+                    if tup[1] == winner_name:
+                        return False, tup
 
         elif sort_list[0][0] == 'Pair':
-
             temp = list(self.playerTop5Cards.items())
-            #sort_order = ['A', 'K', 'Q', 'J', '0', '9', '8', '7', '6', '5', '4', '3', '2']
             res = [(name, cards) for x in self.sortOrder for name, cards in temp if cards[0] == x]
             target = res[0][1][0]
             bool, l = self.isDuplicate(res, target, index=0)
-            n = 2
-            while True:
-                if n == 5:
-                    print('draw')
-                    return True, l
-                elif bool:
-                    bool, l = self.pairTieBreaker(l, n)
-                    n += 1
-                else:
-                    winner_name = l[0][0]
-                    for tup in sort_list:
-                        if tup[1] == winner_name:
-                            return False, tup
+            if bool:
+                n = 2
+                while True:
+                    if n == 5 and bool:
+                        print('draw')
+                        drawlist = [tup for x in l for tup in sort_list if tup[1] == x[0]]
+                        return True, drawlist
+                    elif bool:
+                        bool, l = self.pairTieBreaker(l, n)
+                        n += 1
+                    else:
+                        winner_name = l[0][0]
+                        for tup in sort_list:
+                            if tup[1] == winner_name:
+                                return False, tup
+            else:
+                winner_name = l[0][0]
+                for tup in sort_list:
+                    if tup[1] == winner_name:
+                        return False, tup
 
     def pairTieBreaker(self, l, n):
-
-        temp = list(self.playerTop5Cards.items())
-        res = [(name, cards) for x in self.sortOrder for name, cards in temp if cards[n] == x]
+        #temp = list(self.playerTop5Cards.items())
+        res = [(name, cards) for x in self.sortOrder for name, cards in l if cards[n] == x]
         bool, ans = self.isDuplicate(res, res[0][1][n], index=n)
         return bool, ans
 
@@ -414,16 +517,23 @@ class Ranks(Hand):
                 self.playerTop5Cards[name] = self.isStraightFlush(fplyrCard, collect=True)
 
             elif key == 'FourOfKind':
-                pass
+                self.playerTop5Cards[name] = self.isFourOfKind(fplyrCard, collect=True)
 
             elif key == 'FullHouse':
                 pass
 
             elif key == 'Flush':
-                pass
+                self.playerTop5Cards[name] = self.isFlush(fplyrCard, collect=True)
 
             elif key == 'Straight':
                 self.playerTop5Cards[name] = self.isStraight(fplyrCard, collect=True)
+
+            elif key == 'ThreeOfKind':
+                pass
+            #     self.playerTop5Cards[name] = self.isThreeOfKind(fplyrCard, collect=True)
+
+            elif key == 'TwoPair':
+                self.playerTop5Cards[name] = self.isTwoOfKind(fplyrCard, collect=True)
 
             elif key == 'Pair':
                 self.playerTop5Cards[name] = self.isPair(fplyrCard, collect=True)
@@ -436,8 +546,8 @@ class Ranks(Hand):
         for i in range(n):
             name = input("enter player name: ")
             while True:
-                if name in player_list:
-                    print("name already taken")
+                if name in player_list or name == "":
+                    print("INVALID NAME")
                     name = input("enter player name: ")
                 else:
                     player_list.append(name)
