@@ -289,7 +289,7 @@ class Ranks(Hand):
                     else:
                         drawNames += val[1]
                 return "Game draw b/w " + drawNames + " with " + str(winner[0][0])
-            return f"{winner[1]} won with {winner[0]}"
+            return f"$$ {winner[1]} WON with {winner[0]} $$"
         else:
             # check winner acc to high card
             highCard_list = []
@@ -353,7 +353,6 @@ class Ranks(Hand):
         :param sort_list: [(key, name, indexOfKey)] only of players with tie
         :return: isDraw, list of draw OR winner(key, name, indexOfKey)
         '''
-        print('in tie breaker')
         playernames = [name for k, name, i in sort_list]
         player_dict = self.finalPlayerHandList(playernames)
         self.collectCards(sort_list, player_dict)
@@ -603,7 +602,7 @@ class Ranks(Hand):
                 self.playerTop5Cards[name] = self.isPair(fplyrCard, collect=True)
 
             else:
-                print('not yet collected')
+                print('card collection error')
 
     def playerNames(self, n):
         player_list = []
@@ -630,14 +629,19 @@ if __name__ == '__main__':
             print()
         else:
             break
+    print()
     player_names = poker.playerNames(n)
     print()
     poker.distribute_cards(2, player_names)                             # deal cards to players
     print()
     for name in player_names:
         poker.player_hand(hand=name, display=True)                      # display player's cards
+        print()
     poker.move_cards('dealer', 5)                                       # deal dealer's cards
     poker.player_hand(hand='dealer', display=True)                      # display dealer's cards
+    print()
     finalPlayerHand_dict = poker.finalPlayerHandList(player_names)
     winner = poker.compare(player_names, finalPlayerHand_dict)          # compares ranks of players
     print(winner)
+    print()
+    input("Press any key to exit !")
