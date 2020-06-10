@@ -1,4 +1,4 @@
-import requests
+import requests, time, threading, sys, itertools
 
 
 class Deck:
@@ -46,19 +46,33 @@ class Deck:
         move_url = self.base_url + self.deck_id + '/pile/' + hand + '/add/'
         res = requests.get(move_url, params=param).json()
         if res['success']:
-            print(f'cards moved to {hand}')
+            return True
+            #print(f'cards moved to {hand}')
+        else:
+            print("error in moving cards")
         return
-
 
     def distribute_cards(self, num, player_list):
         """ Distributes cards to players """
 
-        # player_list = []
-        # for player in args:
-        #     player_list.append(player)
+        done = False
+        # here is the animation
+        def animated_loading():
+            for char in itertools.cycle('/-\\|'):
+                if done:
+                    break
+                sys.stdout.write('\r' + 'Distributing Cards... ' + char)
+                time.sleep(.2)
+                sys.stdout.flush()
+
+        t = threading.Thread(target=animated_loading)
+        t.start()
+
+        # long process here
         for i in range(num):
             for player in player_list:
                 self.move_cards(player)
+        done = True
 
 
 class Hand(Deck):
